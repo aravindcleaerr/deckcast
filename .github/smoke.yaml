@@ -1,0 +1,18 @@
+# Minimal config used by CI to render one frame (no tokens / external APIs).
+project: "CI smoke"
+output: "out/smoke.mp4"
+theme:
+  brand: "Deckcast"
+  accent: "#1f6f63"
+  accent2: "#d98a3d"
+image:
+  provider: none          # no image generation in CI
+voice:
+  name: "en-US-AriaNeural"
+frames:
+  mode: builtin
+slides:
+  - eyebrow: "CI"
+    title: "Smoke test"
+    subtitle: "If this frame renders, the core pipeline is wired correctly."
+    narration: "Smoke test."

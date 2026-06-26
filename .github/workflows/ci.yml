@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # GitHub's ubuntu runners ship Google Chrome; we just need ffmpeg.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install deckcast
+        run: pip install -e .
+
+      - name: Compile-check all modules
+        run: python -m compileall -q deckcast
+
+      - name: Prerequisites (deckcast doctor)
+        run: deckcast doctor
+
+      # Renders a real slide frame via headless Chrome. No tokens / external APIs needed
+      # (image.provider=none, frames only) so CI stays deterministic and green.
+      - name: Smoke build — render a frame
+        run: |
+          deckcast run .github/smoke.yaml --steps frames --only 1
+          test -f .github/build_deckcast/frames/frame-01.png \
+            && echo "✓ frame rendered" || (echo "✗ no frame produced" && exit 1)
