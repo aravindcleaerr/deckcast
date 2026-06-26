@@ -1,0 +1,40 @@
+# Autonomous deck — NO slides, just a brief. The LLM designs the whole deck, then it builds.
+#
+#   export HF_TOKEN=hf_xxx                 # free images (or set image.provider: pollinations)
+#   export OPENAI_API_KEY=sk-...           # or point llm.base_url at any provider below
+#   deckcast run examples/autonomous.yaml
+
+project: "KuboHomes pitch (auto)"
+output: "out/auto.mp4"
+
+brief: >
+  A warm, 9-slide pitch for KuboHomes, a trust platform that helps families and independent
+  seniors discover verified care homes from anywhere. India-first with a strong NRI focus.
+  Cover the emotional problem, the "trust layer" vision, the two kinds of users, how the
+  business model keeps trust un-buyable, and end on a confident call to action.
+
+theme:
+  brand: "KuboHomes"
+  accent: "#1f6f63"
+  accent2: "#d98a3d"
+  bg: "#fbf8f2"
+  ink: "#1d2a27"
+
+image:
+  provider: hf
+  model: schnell
+  style: "candid documentary photograph, soft golden light, warm cream teal and marigold tones, dignified, realistic, sharp"
+
+voice:
+  name: "en-IN-NeerjaNeural"
+  rate: "-4%"
+
+# Any OpenAI-compatible endpoint works — swap these three lines for your provider:
+#   OpenAI    base_url: https://api.openai.com/v1          api_key_env: OPENAI_API_KEY   model: gpt-4o-mini
+#   Groq      base_url: https://api.groq.com/openai/v1     api_key_env: GROQ_API_KEY     model: llama-3.3-70b-versatile
+#   Ollama    base_url: http://localhost:11434/v1          api_key_env: ""               model: llama3.1   (local, no key)
+llm:
+  enabled: true
+  base_url: "https://api.openai.com/v1"
+  api_key_env: "OPENAI_API_KEY"
+  model: "gpt-4o-mini"

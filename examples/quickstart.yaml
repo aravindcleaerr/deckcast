@@ -1,0 +1,64 @@
+# Minimal 3-slide example. Build with:
+#   deckcast run examples/quickstart.yaml
+# Images are generated free via Hugging Face FLUX (set $HF_TOKEN) — or set
+# image.provider: pollinations (no key), or image.provider: none (supply your own).
+
+project: "Deckcast Quickstart"
+output: "out/quickstart.mp4"
+
+theme:
+  brand: "Acme"
+  accent: "#1f6f63"
+  accent2: "#d98a3d"
+  bg: "#fbf8f2"
+  ink: "#1d2a27"
+
+image:
+  provider: hf            # hf | pollinations | none
+  model: schnell
+  width: 1344
+  height: 768
+  style: "candid documentary photograph, soft natural light, warm tones, realistic, sharp focus"
+
+voice:
+  provider: edge
+  name: "en-IN-NeerjaNeural"
+  rate: "-4%"
+
+frames:
+  mode: builtin           # builtin renders slides for you; no external HTML needed
+
+# LLM is OPTIONAL. With enabled:false you write image_prompt + narration yourself (below).
+# To auto-write them, set enabled:true and point base_url at ANY OpenAI-compatible API:
+#   OpenAI   base_url: https://api.openai.com/v1            api_key_env: OPENAI_API_KEY
+#   Groq     base_url: https://api.groq.com/openai/v1       api_key_env: GROQ_API_KEY
+#   Ollama   base_url: http://localhost:11434/v1            api_key_env: ""   (local, no key)
+llm:
+  enabled: false
+  base_url: "https://api.openai.com/v1"
+  api_key_env: "OPENAI_API_KEY"
+  model: "gpt-4o-mini"
+
+slides:
+  - eyebrow: "Welcome"
+    title: "Build narrated videos from slides"
+    subtitle: "Images, voiceover, and assembly — automated, in any project."
+    image_prompt: "a bright modern desk with a laptop and a coffee cup by a sunny window, warm and inviting"
+    narration: "Deckcast turns a simple list of slides into a polished narrated video, with AI imagery and a natural voiceover."
+
+  - eyebrow: "How it works"
+    title: "Five steps, one command"
+    bullets:
+      - "Author prompts & narration (optional, any LLM)"
+      - "Generate on-brand images for free"
+      - "Render crisp 1080p slide frames"
+      - "Add a neural voiceover"
+      - "Assemble the final MP4"
+    image_prompt: "an abstract set of softly glowing connected modular blocks, warm teal and amber tones, clean and minimal"
+    narration: "It runs five steps. Author the script, generate images, render frames, narrate, and assemble — all from one config file."
+
+  - eyebrow: "Use it anywhere"
+    title: "Yours to reuse"
+    subtitle: "Drop it into any project. Bring your own LLM, or none at all."
+    image_prompt: "an open road curving gently toward a bright sunrise horizon, hopeful and expansive"
+    narration: "Use it in any project, with any language model, or with no model at all. It is yours to reuse."

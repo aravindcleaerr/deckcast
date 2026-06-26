@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# deckcast build artifacts & rendered output
+build_deckcast/
+out/
+**/build_deckcast/
+**/out/
+
+# secrets — never commit tokens/keys
+*token*.txt
+*.key
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
