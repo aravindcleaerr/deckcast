@@ -3,8 +3,8 @@
 [![CI](https://github.com/aravindcleaerr/deckcast/actions/workflows/ci.yml/badge.svg)](https://github.com/aravindcleaerr/deckcast/actions/workflows/ci.yml)
 &nbsp;[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Turn a list of slides into a **narrated MP4** — automated, reusable in any project,
-and **independent of any specific LLM**.
+Turn a list of slides into a **narrated MP4** — or a **PPTX / HTML deck** from the same
+frames — automated, reusable in any project, and **independent of any specific LLM**.
 
 ![deckcast demo](assets/demo.gif)
 
@@ -37,6 +37,12 @@ Python: `pip install -r requirements.txt` (or `pip install -e .`).
 ```bash
 deckcast doctor      # verify chrome + ffmpeg + edge-tts are available
 ```
+
+**Windows note.** Chrome/Edge are auto-detected from their standard install paths, so
+they need not be on PATH. `ffmpeg` **and `ffprobe`** do need to be on PATH — grab a build
+that ships both (e.g. [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) or
+`winget install Gyan.FFmpeg`) and add its `bin` to PATH. The `imageio-ffmpeg` pip package
+bundles only `ffmpeg`, not `ffprobe`, so it is **not** sufficient on its own.
 
 ## Quickstart
 
@@ -109,7 +115,25 @@ frames:
   deck_path: "docs/MyDeck.html"   # must support ?clean#N (one slide per #index, hides chrome)
 ```
 
-## Output
+## Output formats
 
-`output:` (default `out/<name>.mp4`) — 1920×1080 H.264 + AAC, each slide held for the
-length of its narration. Intermediate files live in `build_deckcast/`.
+By default deckcast builds an **MP4**. It can also emit a **PPTX** and a self-contained
+**HTML** deck from the very same rendered frames, so all three look identical:
+
+```bash
+deckcast run deck.yaml --formats mp4,pptx,html   # all three
+deckcast run deck.yaml --formats pptx,html        # decks only — skips voiceover + video
+```
+
+Or set it in the config: `formats: [mp4, pptx, html]`.
+
+| Format | What you get | Notes |
+|--------|--------------|-------|
+| `mp4`  | `output:` (default `out/<name>.mp4`) — 1920×1080 H.264 + AAC, each slide held for the length of its narration | the default |
+| `pptx` | one full-bleed 16:9 slide per frame, **narration as speaker notes** | needs `pip install "deckcast[export]"` (python-pptx) |
+| `html` | a single self-contained file — arrow-key / click navigation, progress bar, `N` toggles speaker notes, `F` fullscreen, `#sN` deep links | stdlib only; frames are embedded, so the file is self-contained |
+
+When no `mp4` is requested, the `tts` and `video` stages are skipped automatically (decks
+need only the frames). Paths default to the `output:` name with a `.pptx` / `.html`
+suffix; override with `pptx:` / `html:` keys in the config. Intermediate files live in
+`build_deckcast/`.

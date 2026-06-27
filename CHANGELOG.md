@@ -3,6 +3,21 @@
 All notable changes to deckcast are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); versioning is [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **PPTX and HTML export.** `--formats mp4,pptx,html` (or `formats:` in config) emits a
+  PowerPoint (full-bleed slides, narration as speaker notes) and/or a self-contained,
+  keyboard-navigable HTML deck from the same rendered frames. `tts`/`video` stages are
+  skipped automatically when no `mp4` is requested. PPTX needs the `[export]` extra
+  (`pip install "deckcast[export]"`); HTML is stdlib-only.
+
+### Fixed
+- **Windows support.** Detect Chrome/Edge from their standard install paths (previously
+  only Linux binary names were searched), and build `file://` URLs with `Path.as_uri()`
+  so Chrome actually loads slide background images (backslash paths silently failed,
+  producing image-less frames).
+
 ## [0.1.0] — 2026-06-26
 
 Initial release.

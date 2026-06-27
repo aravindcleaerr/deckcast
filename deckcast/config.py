@@ -36,6 +36,9 @@ DEFAULTS = {
         "temperature": 0.7,
     },
     "video": {"fps": 30, "tail_seconds": 0.8, "audio_bitrate": "192k"},
+    "formats": ["mp4"],              # any of: mp4 | pptx | html
+    "pptx": None,                    # optional explicit path (else derived from `output`)
+    "html": None,                    # optional explicit path (else derived from `output`)
     "slides": [],
 }
 

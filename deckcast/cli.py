@@ -24,9 +24,11 @@ def main(argv=None):
                                  description="Config-driven narrated-video builder (LLM-agnostic).")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    r = sub.add_parser("run", help="build the video from a config file")
+    r = sub.add_parser("run", help="build the deck from a config file")
     r.add_argument("config", help="path to .yaml or .json config")
     r.add_argument("--steps", help="comma list subset of: " + ",".join(pipeline.STEPS))
+    r.add_argument("--formats", help="comma list of outputs: " + ",".join(pipeline.FORMATS)
+                                     + " (default mp4)")
     r.add_argument("--only", type=int, help="process a single slide number (test)")
 
     c = sub.add_parser("create", help="autonomous: design a whole deck from one topic (LLM)")
@@ -52,7 +54,8 @@ def main(argv=None):
 
     cfg = config.load(args.config)
     steps = args.steps.split(",") if args.steps else None
-    pipeline.run(cfg, steps=steps, only=args.only)
+    formats = args.formats.split(",") if args.formats else None
+    pipeline.run(cfg, steps=steps, only=args.only, formats=formats)
 
 
 def create(args):

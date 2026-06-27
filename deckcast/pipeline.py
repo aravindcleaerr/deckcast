@@ -1,12 +1,28 @@
-"""Orchestrate the full pipeline: author -> images -> frames -> tts -> video."""
+"""Orchestrate the full pipeline: author -> images -> frames -> tts -> video.
+
+Outputs are selected by `formats` (default ["mp4"]): mp4 (narrated video),
+pptx, and/or html. pptx/html reuse the rendered frames, so tts/video stages
+are skipped automatically when no mp4 is requested.
+"""
 from pathlib import Path
-from . import author, images, frames, tts, video
+from . import author, images, frames, tts, video, export
 
 STEPS = ["author", "images", "frames", "tts", "video"]
+FORMATS = ["mp4", "pptx", "html"]
 
 
-def run(cfg, steps=None, only=None):
-    steps = steps or STEPS
+def _fmt_out(cfg, root, ext):
+    explicit = cfg.get(ext)
+    p = Path(explicit) if explicit else Path(cfg["output"]).with_suffix("." + ext)
+    return p if p.is_absolute() else root / p
+
+
+def run(cfg, steps=None, only=None, formats=None):
+    steps = list(steps or STEPS)
+    formats = [f.lower().lstrip(".") for f in (formats or cfg.get("formats") or ["mp4"])]
+    # pptx/html only need frames; drop audio/video stages when no mp4 is wanted.
+    if "mp4" not in formats:
+        steps = [s for s in steps if s not in ("tts", "video")]
     root = Path(cfg["_dir"])
     build = root / "build_deckcast"
     fdir, idir, adir, sdir = build / "frames", build / "images", build / "audio", build / "segments"
@@ -30,7 +46,7 @@ def run(cfg, steps=None, only=None):
     if "author" in steps:
         slides = author.author(slides, theme, cfg["llm"])
 
-    segs, total = [], 0.0
+    segs, total, built = [], 0.0, []
     for i in idxs:
         s = slides[i]
         tag = f"slide {i+1:02d}"
@@ -56,6 +72,7 @@ def run(cfg, steps=None, only=None):
                 frames.deck_frame(fr["deck_path"], i, frame, fsize)
             else:
                 frames.builtin_frame(s, i, len(slides), theme, img_path, frame, fsize)
+        built.append({"frame": frame, "narration": s.get("narration"), "title": s.get("title")})
 
         # 4) voiceover
         audio = adir / f"audio-{i+1:02d}.mp3"
@@ -72,12 +89,29 @@ def run(cfg, steps=None, only=None):
             segs.append(seg); total += dur
             print(f"{tag}: segment {dur:.1f}s", flush=True)
 
-    if "video" in steps and not only and segs:
-        out = Path(cfg["output"])
-        out = out if out.is_absolute() else root / out
+    if only:                       # single-slide test run — don't emit whole decks
+        return None
+
+    outputs = []
+    project = cfg.get("project", "Deck")
+
+    if "mp4" in formats and "video" in steps and segs:
+        out = _fmt_out(cfg, root, "mp4")
         print("concatenating final video...", flush=True)
         video.concat(segs, out, build)
         m, sec = divmod(int(total), 60)
-        print(f"\nDONE -> {out}  ({m}m {sec}s, {len(segs)} slides)")
-        return out
-    return None
+        outputs.append((out, f"{m}m {sec}s, {len(segs)} slides"))
+
+    if "pptx" in formats:
+        dest = _fmt_out(cfg, root, "pptx")
+        if export.to_pptx(built, dest, fsize, project):
+            outputs.append((dest, f"pptx, {len(built)} slides"))
+
+    if "html" in formats:
+        dest = _fmt_out(cfg, root, "html")
+        if export.to_html(built, dest, fsize, project):
+            outputs.append((dest, f"html, {len(built)} slides"))
+
+    for path, info in outputs:
+        print(f"DONE -> {path}  ({info})")
+    return [p for p, _ in outputs] or None
