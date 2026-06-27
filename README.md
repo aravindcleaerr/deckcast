@@ -121,19 +121,21 @@ By default deckcast builds an **MP4**. It can also emit a **PPTX** and a self-co
 **HTML** deck from the very same rendered frames, so all three look identical:
 
 ```bash
-deckcast run deck.yaml --formats mp4,pptx,html   # all three
-deckcast run deck.yaml --formats pptx,html        # decks only — skips voiceover + video
+deckcast run deck.yaml --formats mp4,pptx,pdf,html   # all four
+deckcast run deck.yaml --formats pptx,pdf,html        # decks only — skips voiceover + video
 ```
 
-Or set it in the config: `formats: [mp4, pptx, html]`.
+Or set it in the config: `formats: [mp4, pptx, pdf, html]`.
 
 | Format | What you get | Notes |
 |--------|--------------|-------|
-| `mp4`  | `output:` (default `out/<name>.mp4`) — 1920×1080 H.264 + AAC, each slide held for the length of its narration | the default |
+| `mp4`  | `output:` (default `out/<name>.mp4`) — 1920×1080 H.264 + AAC, each slide held for the length of its narration; also writes a matching `.srt` | the default |
 | `pptx` | one full-bleed 16:9 slide per frame, **narration as speaker notes** | needs `pip install "deckcast[export]"` (python-pptx) |
+| `pdf`  | one frame per page (13.33×7.5in) | needs `pip install "deckcast[export]"` (Pillow) |
 | `html` | a single self-contained file — arrow-key / click navigation, progress bar, `N` toggles speaker notes, `F` fullscreen, `#sN` deep links | stdlib only; frames are embedded, so the file is self-contained |
 
 When no `mp4` is requested, the `tts` and `video` stages are skipped automatically (decks
-need only the frames). Paths default to the `output:` name with a `.pptx` / `.html`
-suffix; override with `pptx:` / `html:` keys in the config. Intermediate files live in
-`build_deckcast/`.
+need only the frames). Paths default to the `output:` name with the matching suffix;
+override with `pptx:` / `pdf:` / `html:` keys. Use `--resume` to reuse cached
+images/frames/audio. Polish the video with `video.transition` (crossfades) and
+`video.music` (background bed). Intermediate files live in `build_deckcast/`.

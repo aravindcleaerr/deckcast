@@ -42,24 +42,36 @@ author  →  images  →  frames   →  tts      →  video
 - **images** — generates one image per slide from its `image_prompt` (free).
 - **frames** — renders each slide to a 1920×1080 PNG: either a **built-in branded slide**, or a screenshot of **your own HTML deck**.
 - **tts** — neural voiceover per slide (free, no key).
-- **video** — each slide is held for the length of its narration, then concatenated to one MP4.
+- **video** — each slide is held for the length of its narration, then concatenated to one MP4
+  (optionally with crossfades, a music bed, and a `.srt` caption sidecar).
+
+The rendered frames also drive the **pptx / pdf / html** exports — same look, no video needed
+(see §13).
 
 ---
 
 ## 2. Install & prerequisites
 
-**System tools** (must be on `PATH`):
+**System tools:**
 
-| Tool | Why | Install |
-|------|-----|---------|
-| `ffmpeg` (+`ffprobe`) | assemble video | `apt install ffmpeg` / `brew install ffmpeg` |
-| Google Chrome or Chromium | render slide frames | system package |
+| Tool | Needed for | Install |
+|------|------------|---------|
+| Google Chrome / Chromium / Edge | rendering slide frames (**any** output) | system package — auto-detected, need not be on PATH |
+| `ffmpeg` **and** `ffprobe` | the `mp4` video output only | `apt install ffmpeg` / `brew install ffmpeg` (must be on PATH) |
+
+> **Windows note.** Chrome/Edge are found from their standard install paths automatically.
+> `ffmpeg`+`ffprobe` must both be on PATH — use a build that ships both (e.g.
+> [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) or `winget install Gyan.FFmpeg`). The
+> `imageio-ffmpeg` pip package bundles only `ffmpeg` (deckcast will fall back to it), **not
+> `ffprobe`**, so it isn't sufficient for video on its own. The `pptx`/`pdf`/`html`
+> outputs need neither ffmpeg nor ffprobe.
 
 **Python** (3.9+):
 
 ```bash
 cd deckcast
-pip install -e .          # installs the `deckcast` command + deps (edge-tts, pyyaml)
+pip install -e .            # core: the `deckcast` command + edge-tts, pyyaml
+pip install -e ".[export]"  # add python-pptx + Pillow for pptx/pdf export (html is stdlib-only)
 # or, without installing:  pip install -r requirements.txt  &&  python -m deckcast ...
 ```
 
@@ -70,10 +82,11 @@ deckcast doctor
 ```
 
 ```
-  OK   chrome/chromium: /usr/bin/google-chrome
-  OK   ffmpeg: /usr/bin/ffmpeg
-  OK   ffprobe: /usr/bin/ffprobe
-  OK   edge-tts (python)
+  OK   chrome/chromium: /usr/bin/google-chrome   [needed for: frames - any output]
+  OK   ffmpeg: /usr/bin/ffmpeg                    [needed for: video (mp4)]
+  OK   ffprobe: /usr/bin/ffprobe                  [needed for: video (mp4)]
+  OK   edge-tts (python)   [needed for: voiceover (mp4)]
+  OK   python-pptx   [needed for: pptx export]
 All prerequisites present.
 ```
 
@@ -111,15 +124,22 @@ deckcast create "a 6-slide intro to our product for investors" --slides 6 --buil
 
 ## 5. Commands
 
-### `deckcast run <config> [--steps ...] [--only N]`
-Build the video from a config file.
+### `deckcast run <config> [--steps ...] [--formats ...] [--resume] [--only N]`
+Build the deck from a config file.
+- `--formats mp4,pptx,pdf,html` — which outputs to produce (default `mp4`). With no `mp4`,
+  the `tts`/`video` stages are skipped automatically (those outputs need only the frames).
 - `--steps author,images,frames,tts,video` — run only a subset (comma-separated).
+- `--resume` — reuse any cached image/frame/audio/segment that already exists (a frame is
+  re-rendered only if its image changed; a segment re-muxed only if its image/audio changed).
 - `--only N` — process a single slide number (great for testing one slide).
 
 ```bash
 deckcast run deck.yaml
-deckcast run deck.yaml --only 3                 # just slide 3
-deckcast run deck.yaml --steps frames,tts,video # skip image regeneration
+deckcast run deck.yaml --formats mp4,pptx,pdf,html  # all four from one build
+deckcast run deck.yaml --formats pptx,html          # decks only (no voiceover/video)
+deckcast run deck.yaml --resume                     # continue after a failed run, fast
+deckcast run deck.yaml --only 3                      # just slide 3
+deckcast run deck.yaml --steps frames,tts,video      # skip image regeneration
 ```
 
 ### `deckcast create "<topic>" [options]`
@@ -152,11 +172,16 @@ A deck is a YAML (or JSON) file. Fully-annotated:
 
 ```yaml
 project: "My Deck"             # label only
-output: "out/my-deck.mp4"      # output path (relative to the config file)
+output: "out/my-deck.mp4"      # mp4 path (relative to the config file)
+formats: [mp4]                 # any of: mp4 | pptx | pdf | html  (or use --formats)
+pptx: null                     # OPTIONAL explicit path (else derived from `output`)
+pdf:  null                     # OPTIONAL explicit path
+html: null                     # OPTIONAL explicit path
 brief: "..."                   # OPTIONAL — autonomous mode: LLM designs slides from this
 
 theme:
   brand:   "KuboHomes"         # shown as a chip + footer on built-in slides
+  logo:    null                # OPTIONAL brand logo image (replaces the letter badge)
   accent:  "#1f6f63"           # primary (eyebrow, brand chip)
   accent2: "#d98a3d"           # secondary (bullet markers, accents)
   bg:      "#fbf8f2"           # slide background when there is no image
@@ -193,6 +218,12 @@ video:
   fps:           30
   tail_seconds:  0.8           # silence held after each narration
   audio_bitrate: "192k"
+  min_seconds:   0.0           # floor for a narrated slide's on-screen time
+  still_seconds: 3.0           # hold time for a slide with NO narration (silent)
+  captions:      true          # also write a matching .srt next to the mp4
+  transition:    0.0           # >0 = crossfade seconds between slides (re-encodes)
+  music:         null          # optional path to a background music track
+  music_volume:  0.12          # 0..1 loudness of the music bed under the narration
 
 slides:                        # omit entirely when using `brief:`
   - eyebrow: "Welcome"
@@ -201,6 +232,7 @@ slides:                        # omit entirely when using `brief:`
     bullets: ["...", "..."]
     image_prompt: "..."        # or `image: path/to.png` to use your own file
     narration: "..."
+    duration: null             # optional: force a minimum on-screen time (seconds)
     dark: false                # true = dark overlay for white text
 ```
 
@@ -216,7 +248,8 @@ slides:                        # omit entirely when using `brief:`
 | `bullets` | built-in frame | list of 3–5 short phrases (use *instead of* subtitle) |
 | `image` | image step | path to your own image (skips generation) |
 | `image_prompt` | image step | text-to-image prompt; `style` is appended |
-| `narration` | tts | the spoken line(s) for this slide |
+| `narration` | tts | the spoken line(s) for this slide; omit for a silent hold |
+| `duration` | video | force a minimum on-screen time (seconds) |
 | `topic` | author (LLM) | hint the LLM uses to write `image_prompt`+`narration` |
 | `dark` | built-in frame | `true` → dark overlay + light text |
 
@@ -345,8 +378,10 @@ Minimal JS to add to any deck (this is exactly what the KuboHomes deck uses):
 ## 12. Iterating fast
 
 - **One slide at a time:** `deckcast run deck.yaml --only 4`
+- **Resume after a failure:** `--resume` reuses everything already built and only fills gaps.
 - **Skip image regen** (text/voice tweaks): `--steps frames,tts,video`
 - **Re-narrate only:** `--steps tts,video`
+- **Decks without rendering video:** `--formats pptx,pdf,html` (skips voiceover + ffmpeg)
 - **Vary an image:** the `hf` `schnell` model is *deterministic per seed*. To get a different
   composition, change `image.seed` (any int). To reproduce one you liked, keep that seed.
 - **Cheaper drafts:** set `image.provider: pollinations` (no key) while drafting, switch to
@@ -354,12 +389,28 @@ Minimal JS to add to any deck (this is exactly what the KuboHomes deck uses):
 
 ---
 
-## 13. Output & build files
+## 13. Output formats & build files
 
-- **Final video:** `output:` path (default `out/<name>.mp4`) — 1920×1080, H.264 + AAC.
-- **Intermediates:** `build_deckcast/` next to your config —
-  `frames/`, `images/`, `audio/`, `segments/`, `segments.txt`.
-  Safe to delete anytime; it's all regenerated. (Add it to `.gitignore`.)
+Pick any combination via `formats:` (config) or `--formats` (CLI). All come from the **same
+rendered frames**, so they look identical:
+
+| Format | What you get | Needs |
+|--------|--------------|-------|
+| `mp4` | `output:` (default `out/<name>.mp4`) — 1920×1080 H.264 + AAC; each slide held for its narration | ffmpeg + ffprobe + edge-tts |
+| `pptx` | one full-bleed 16:9 slide per frame, **narration as speaker notes** | `[export]` (python-pptx) |
+| `pdf` | one frame per page (13.33×7.5in) | `[export]` (Pillow) |
+| `html` | a single self-contained file — arrow/click nav, progress bar, `N` notes, `F` fullscreen, `#sN` deep links | nothing (stdlib) |
+
+- **Captions:** building `mp4` also writes a matching **`.srt`** sidecar (toggle with
+  `video.captions`). Note: `.srt` timings follow the no-transition timeline, so they drift
+  slightly if `video.transition > 0`.
+- **Crossfades & music:** set `video.transition` (seconds) for cross-dissolves and
+  `video.music` for a looping bed mixed under the narration (`video.music_volume`).
+- **Per-format paths** default to `output:` with the matching suffix; override with the
+  `pptx:` / `pdf:` / `html:` keys.
+- **Intermediates:** `build_deckcast/` next to your config — `frames/`, `images/`,
+  `audio/`, `segments/`. Safe to delete; everything regenerates. Use `--resume` to reuse it.
+  (Already in `.gitignore`.)
 
 ---
 
