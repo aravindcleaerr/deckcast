@@ -11,7 +11,8 @@ requires-python = ">=3.9"
 dependencies = ["edge-tts>=6.1", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
-export = ["python-pptx>=0.6.21"]   # only needed for `--formats pptx` (html export is stdlib-only)
+# only needed for `--formats pptx,pdf` (html export is stdlib-only)
+export = ["python-pptx>=0.6.21", "Pillow>=9.0"]
 
 [project.scripts]
 deckcast = "deckcast.cli:main"

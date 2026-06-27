@@ -40,8 +40,9 @@ DEFAULTS = {
         "min_seconds": 0.0,          # floor for a narrated slide's on-screen time
         "still_seconds": 3.0,        # hold time for a slide with no narration
     },
-    "formats": ["mp4"],              # any of: mp4 | pptx | html
+    "formats": ["mp4"],              # any of: mp4 | pptx | pdf | html
     "pptx": None,                    # optional explicit path (else derived from `output`)
+    "pdf": None,                     # optional explicit path (else derived from `output`)
     "html": None,                    # optional explicit path (else derived from `output`)
     "slides": [],
 }

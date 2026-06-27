@@ -9,7 +9,7 @@ from . import author, images, frames, tts, video, export
 from .util import ffprobe_duration
 
 STEPS = ["author", "images", "frames", "tts", "video"]
-FORMATS = ["mp4", "pptx", "html"]
+FORMATS = ["mp4", "pptx", "pdf", "html"]
 
 
 def _fmt_out(cfg, root, ext):
@@ -136,6 +136,11 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
         dest = _fmt_out(cfg, root, "pptx")
         if export.to_pptx(built, dest, fsize, project):
             outputs.append((dest, f"pptx, {len(built)} slides"))
+
+    if "pdf" in formats:
+        dest = _fmt_out(cfg, root, "pdf")
+        if export.to_pdf(built, dest, fsize, project):
+            outputs.append((dest, f"pdf, {len(built)} slides"))
 
     if "html" in formats:
         dest = _fmt_out(cfg, root, "html")

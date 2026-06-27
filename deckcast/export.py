@@ -1,9 +1,10 @@
 """Export the rendered slide frames to other deck formats.
 
   pptx : one full-bleed slide per frame (16:9), narration as speaker notes.
+  pdf  : one frame per page (16:9).
   html : a single self-contained HTML deck (frames embedded), keyboard-navigable.
 
-Both reuse the 1920x1080 PNG frames the pipeline already renders, so the exported
+All reuse the 1920x1080 PNG frames the pipeline already renders, so the exported
 decks look exactly like the video — no separate layout engine.
 """
 import base64
@@ -40,6 +41,22 @@ def to_pptx(slides, dest, size, project="Deck"):
             slide.notes_slide.notes_text_frame.text = note
     Path(dest).parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(dest))
+    return dest
+
+
+def to_pdf(slides, dest, size, project="Deck"):
+    try:
+        from PIL import Image
+    except ImportError:
+        raise SystemExit("pdf export needs Pillow — `pip install \"deckcast[export]\"`.")
+    slides = _existing(slides)
+    if not slides:
+        return None
+    pages = [Image.open(s["frame"]).convert("RGB") for s in slides]
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    # resolution 144 dpi maps a 1920x1080 frame to a 13.33x7.5in page.
+    pages[0].save(str(dest), "PDF", save_all=True, append_images=pages[1:],
+                  resolution=144.0, title=project)
     return dest
 
 
