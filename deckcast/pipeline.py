@@ -37,6 +37,9 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
 
     slides = cfg["slides"]
     theme, img, voice, fr, vid = cfg["theme"], cfg["image"], cfg["voice"], cfg["frames"], cfg["video"]
+    if theme.get("logo"):            # resolve relative to the config dir
+        lp = Path(theme["logo"])
+        theme["logo"] = str(lp if lp.is_absolute() else root / lp)
 
     # 0) autonomous mode — no slides, just a brief: let the LLM design the whole deck
     if not slides and cfg.get("brief"):

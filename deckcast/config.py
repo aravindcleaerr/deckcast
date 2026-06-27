@@ -7,6 +7,7 @@ DEFAULTS = {
     "output": "out/deckcast.mp4",
     "theme": {
         "brand": "Deckcast",
+        "logo": None,                # optional brand logo image (replaces the letter badge)
         "accent": "#1f6f63", "accent2": "#d98a3d",
         "bg": "#fbf8f2", "ink": "#1d2a27",
     },

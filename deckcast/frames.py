@@ -37,12 +37,17 @@ def builtin_frame(slide, idx, total, theme, image_path, dest, size):
         bullets = f"<ul>{items}</ul>"
 
     brand = theme.get("brand", "Deck")
+    logo = theme.get("logo")
+    if logo and Path(logo).exists():
+        brandmark = f'<img class="logo" src="{Path(logo).resolve().as_uri()}"/>'
+    else:
+        brandmark = f'<span class="b">{_esc(brand[:1].upper())}</span>'
     repl = {
         "%%ACCENT%%": theme.get("accent", "#1f6f63"), "%%ACCENT2%%": theme.get("accent2", "#d98a3d"),
         "%%BG%%": theme.get("bg", "#fbf8f2"), "%%INK%%": "#ffffff" if dark else theme.get("ink", "#1d2a27"),
         "%%OVERLAY%%": overlay, "%%IMG%%": img_css,
         "%%DARKCLASS%%": "dark" if dark else "",
-        "%%INITIAL%%": _esc(brand[:1].upper()), "%%BRAND%%": _esc(brand),
+        "%%BRANDMARK%%": brandmark, "%%BRAND%%": _esc(brand),
         "%%EYEBROW%%": _esc(slide.get("eyebrow", "")),
         "%%TITLE%%": _esc(title), "%%TITLESIZE%%": titlesize,
         "%%SUBTITLE%%": sub, "%%BULLETS%%": bullets,
