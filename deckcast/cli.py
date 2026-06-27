@@ -6,16 +6,30 @@ from .util import CHROME, FFMPEG, FFPROBE
 
 
 def doctor():
+    rows = [("chrome/chromium", CHROME, "frames - any output"),
+            ("ffmpeg", FFMPEG, "video (mp4)"),
+            ("ffprobe", FFPROBE, "video (mp4)")]
     ok = True
-    for name, val in [("chrome/chromium", CHROME), ("ffmpeg", FFMPEG), ("ffprobe", FFPROBE)]:
-        print(f"  {'OK ' if val else 'MISSING'}  {name}: {val or '-'}")
+    for name, val, need in rows:
+        print(f"  {'OK ' if val else 'MISSING'}  {name}: {val or '-'}   [needed for: {need}]")
         ok = ok and bool(val)
     try:
         import edge_tts  # noqa
-        print("  OK   edge-tts (python)")
+        print("  OK   edge-tts (python)   [needed for: voiceover (mp4)]")
     except ImportError:
-        print("  MISSING  edge-tts (pip install edge-tts)"); ok = False
-    print("All prerequisites present." if ok else "Install the MISSING items above.")
+        print("  MISSING  edge-tts (pip install edge-tts)   [needed for: voiceover (mp4)]"); ok = False
+    try:
+        import pptx  # noqa
+        print("  OK   python-pptx   [needed for: pptx export]")
+    except ImportError:
+        print("  -    python-pptx not installed   [optional: only for pptx export]")
+    if ok:
+        print("All prerequisites present.")
+    else:
+        print("\nNotes: Chrome/Edge are auto-detected from standard install paths (no PATH needed).")
+        print("ffmpeg+ffprobe are only required for mp4 - install a build that ships BOTH")
+        print("(gyan.dev or `winget install Gyan.FFmpeg`); imageio-ffmpeg lacks ffprobe.")
+        print("pptx/html export need none of the above (html is stdlib-only).")
     return ok
 
 

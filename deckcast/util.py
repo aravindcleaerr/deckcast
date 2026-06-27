@@ -25,9 +25,18 @@ def _win_chrome():
     return None
 
 
+def _imageio_ffmpeg():
+    """Fall back to the ffmpeg binary bundled with the imageio-ffmpeg pip package."""
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
 CHROME = which("google-chrome", "google-chrome-stable", "chromium",
                "chromium-browser", "chrome") or _win_chrome()
-FFMPEG = which("ffmpeg")
+FFMPEG = which("ffmpeg") or _imageio_ffmpeg()
 FFPROBE = which("ffprobe")
 
 
