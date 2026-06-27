@@ -40,6 +40,9 @@ DEFAULTS = {
         "min_seconds": 0.0,          # floor for a narrated slide's on-screen time
         "still_seconds": 3.0,        # hold time for a slide with no narration
         "captions": True,            # write a matching .srt sidecar next to the mp4
+        "transition": 0.0,           # >0 = crossfade seconds between slides (re-encodes)
+        "music": None,               # optional path to a background music track
+        "music_volume": 0.12,        # 0..1 loudness of the music bed under narration
     },
     "formats": ["mp4"],              # any of: mp4 | pptx | pdf | html
     "pptx": None,                    # optional explicit path (else derived from `output`)

@@ -128,8 +128,23 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
 
     if "mp4" in formats and "video" in steps and segs:
         out = _fmt_out(cfg, root, "mp4")
-        print("concatenating final video...", flush=True)
-        video.concat(segs, out, build)
+        tdur = float(vid.get("transition") or 0)
+        if tdur > 0 and len(segs) > 1:
+            print(f"concatenating with {tdur:g}s crossfades...", flush=True)
+            video.concat_xfade(segs, out, tdur, vid["fps"], vid["audio_bitrate"], build)
+            total -= tdur * (len(segs) - 1)
+        else:
+            print("concatenating final video...", flush=True)
+            video.concat(segs, out, build)
+        music = vid.get("music")
+        if music:
+            mp = Path(music)
+            mp = mp if mp.is_absolute() else root / mp
+            if mp.exists():
+                print("mixing background music...", flush=True)
+                video.add_music(out, mp, vid.get("music_volume", 0.12))
+            else:
+                print(f"music not found ({mp}) — skipping", flush=True)
         m, sec = divmod(int(total), 60)
         outputs.append((out, f"{m}m {sec}s, {len(segs)} slides"))
         if vid.get("captions", True):
