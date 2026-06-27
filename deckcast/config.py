@@ -39,6 +39,7 @@ DEFAULTS = {
         "fps": 30, "tail_seconds": 0.8, "audio_bitrate": "192k",
         "min_seconds": 0.0,          # floor for a narrated slide's on-screen time
         "still_seconds": 3.0,        # hold time for a slide with no narration
+        "captions": True,            # write a matching .srt sidecar next to the mp4
     },
     "formats": ["mp4"],              # any of: mp4 | pptx | pdf | html
     "pptx": None,                    # optional explicit path (else derived from `output`)

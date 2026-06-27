@@ -44,6 +44,30 @@ def to_pptx(slides, dest, size, project="Deck"):
     return dest
 
 
+def _ts(sec):
+    ms = int(round(sec * 1000))
+    h, ms = divmod(ms, 3_600_000)
+    m, ms = divmod(ms, 60_000)
+    s, ms = divmod(ms, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def to_srt(rows, dest):
+    """rows: list of (text, duration_seconds), in slide order. Silent slides advance
+    the clock but emit no cue."""
+    cues, t, n = [], 0.0, 0
+    for text, dur in rows:
+        start, t = t, t + dur
+        if text and text.strip():
+            n += 1
+            cues.append(f"{n}\n{_ts(start)} --> {_ts(t)}\n{text.strip()}\n")
+    if not cues:
+        return None
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    Path(dest).write_text("\n".join(cues), encoding="utf-8")
+    return dest
+
+
 def to_pdf(slides, dest, size, project="Deck"):
     try:
         from PIL import Image

@@ -52,7 +52,7 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
     if "author" in steps:
         slides = author.author(slides, theme, cfg["llm"])
 
-    segs, total, built = [], 0.0, []
+    segs, total, built, caption_rows = [], 0.0, [], []
     for i in idxs:
         s = slides[i]
         tag = f"slide {i+1:02d}"
@@ -118,6 +118,7 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
                               dur, vid["audio_bitrate"])
                 print(f"{tag}: segment {dur:.1f}s", flush=True)
             segs.append(seg); total += dur
+            caption_rows.append((text, dur))
 
     if only:                       # single-slide test run — don't emit whole decks
         return None
@@ -131,6 +132,10 @@ def run(cfg, steps=None, only=None, formats=None, resume=False):
         video.concat(segs, out, build)
         m, sec = divmod(int(total), 60)
         outputs.append((out, f"{m}m {sec}s, {len(segs)} slides"))
+        if vid.get("captions", True):
+            srt = export.to_srt(caption_rows, out.with_suffix(".srt"))
+            if srt:
+                outputs.append((srt, f"captions, {len(segs)} slides"))
 
     if "pptx" in formats:
         dest = _fmt_out(cfg, root, "pptx")
