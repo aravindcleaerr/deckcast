@@ -26,7 +26,7 @@ def builtin_frame(slide, idx, total, theme, image_path, dest, size):
     titlesize = "118px" if len(title) < 28 else ("92px" if len(title) < 50 else "72px")
     dark = bool(slide.get("dark"))
     overlay = DARK_OVERLAY if dark else LIGHT_OVERLAY
-    img_css = f", url('file://{Path(image_path).resolve()}')" if image_path and Path(image_path).exists() else ""
+    img_css = f", url('{Path(image_path).resolve().as_uri()}')" if image_path and Path(image_path).exists() else ""
 
     sub = f'<p class="sub" style="{"color:rgba(255,255,255,.85)" if dark else ""}">{_esc(slide["subtitle"])}</p>' \
         if slide.get("subtitle") else ""
@@ -53,7 +53,7 @@ def builtin_frame(slide, idx, total, theme, image_path, dest, size):
         out_html = out_html.replace(k, v)
     tmp = Path(dest).with_suffix(".html")
     tmp.write_text(out_html)
-    screenshot(f"file://{tmp.resolve()}", dest, size[0], size[1])
+    screenshot(tmp.resolve().as_uri(), dest, size[0], size[1])
     tmp.unlink(missing_ok=True)
     return dest
 

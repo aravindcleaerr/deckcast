@@ -14,7 +14,19 @@ def which(*names):
     return None
 
 
-CHROME = which("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")
+def _win_chrome():
+    import os
+    for p in (r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+              r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+              os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+              r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"):
+        if os.path.exists(p):
+            return p
+    return None
+
+
+CHROME = which("google-chrome", "google-chrome-stable", "chromium",
+               "chromium-browser", "chrome") or _win_chrome()
 FFMPEG = which("ffmpeg")
 FFPROBE = which("ffprobe")
 
