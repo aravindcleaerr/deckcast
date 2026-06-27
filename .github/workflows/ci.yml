@@ -22,11 +22,14 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: Install deckcast
-        run: pip install -e .
+      - name: Install deckcast (with export extras) + pytest
+        run: pip install -e ".[export]" pytest
 
       - name: Compile-check all modules
         run: python -m compileall -q deckcast
+
+      - name: Unit tests
+        run: pytest -q
 
       - name: Prerequisites (deckcast doctor)
         run: deckcast doctor
@@ -38,3 +41,12 @@ jobs:
           deckcast run .github/smoke.yaml --steps frames --only 1
           test -f .github/build_deckcast/frames/frame-01.png \
             && echo "✓ frame rendered" || (echo "✗ no frame produced" && exit 1)
+
+      # Build the document decks (no ffmpeg/tokens needed) from the same frames.
+      - name: Smoke export — pptx / pdf / html
+        run: |
+          deckcast run .github/smoke.yaml --steps frames --formats pptx,pdf,html
+          for ext in pptx pdf html; do
+            test -f .github/out/smoke.$ext \
+              && echo "✓ smoke.$ext" || (echo "✗ missing smoke.$ext" && exit 1)
+          done
