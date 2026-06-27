@@ -3,11 +3,11 @@
 Browse voices:  edge-tts --list-voices
 Nice picks: en-IN-NeerjaNeural (f), en-IN-PrabhatNeural (m), en-US-AriaNeural, en-GB-SoniaNeural
 """
-import asyncio
+import asyncio, time
 from pathlib import Path
 
 
-def synth(text, dest, voice):
+def synth(text, dest, voice, retries=3):
     try:
         import edge_tts
     except ImportError:
@@ -20,5 +20,15 @@ def synth(text, dest, voice):
                                     rate=voice.get("rate", "+0%"))
         await comm.save(str(dest))
 
-    asyncio.run(_run())
-    return Path(dest)
+    last = None
+    for attempt in range(1, retries + 1):
+        try:
+            asyncio.run(_run())
+            if Path(dest).exists() and Path(dest).stat().st_size > 0:
+                return Path(dest)
+            raise RuntimeError("edge-tts returned no audio")
+        except Exception as e:                       # network blips, empty responses
+            last = e
+            if attempt < retries:
+                time.sleep(3 * attempt)
+    raise SystemExit(f"TTS failed after {retries} attempts: {last}")

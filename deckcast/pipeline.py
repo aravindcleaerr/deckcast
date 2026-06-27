@@ -6,6 +6,7 @@ are skipped automatically when no mp4 is requested.
 """
 from pathlib import Path
 from . import author, images, frames, tts, video, export
+from .util import ffprobe_duration
 
 STEPS = ["author", "images", "frames", "tts", "video"]
 FORMATS = ["mp4", "pptx", "html"]
@@ -17,7 +18,12 @@ def _fmt_out(cfg, root, ext):
     return p if p.is_absolute() else root / p
 
 
-def run(cfg, steps=None, only=None, formats=None):
+def _fresh(path):
+    p = Path(path)
+    return p.exists() and p.stat().st_size > 0
+
+
+def run(cfg, steps=None, only=None, formats=None, resume=False):
     steps = list(steps or STEPS)
     formats = [f.lower().lstrip(".") for f in (formats or cfg.get("formats") or ["mp4"])]
     # pptx/html only need frames; drop audio/video stages when no mp4 is wanted.
@@ -52,42 +58,66 @@ def run(cfg, steps=None, only=None, formats=None):
         tag = f"slide {i+1:02d}"
 
         # 2) image
-        img_path = None
+        img_path, img_made = None, False
         if fr["mode"] == "builtin":
             if s.get("image"):                       # user-supplied path
                 p = Path(s["image"])
                 img_path = p if p.is_absolute() else root / p
             elif "images" in steps and s.get("image_prompt"):
                 img_path = idir / f"img-{i+1:02d}.png"
-                print(f"{tag}: generating image ({img['provider']})...", flush=True)
-                if not images.generate(s["image_prompt"], img_path, img, img.get("style", "")):
-                    print(f"{tag}: image generation failed — frame will use solid background")
-                    img_path = None
+                if resume and _fresh(img_path):
+                    print(f"{tag}: image cached", flush=True)
+                else:
+                    print(f"{tag}: generating image ({img['provider']})...", flush=True)
+                    if images.generate(s["image_prompt"], img_path, img, img.get("style", "")):
+                        img_made = True
+                    else:
+                        print(f"{tag}: image generation failed — frame will use solid background")
+                        img_path = None
 
         # 3) frame
         frame = fdir / f"frame-{i+1:02d}.png"
         if "frames" in steps:
-            print(f"{tag}: rendering frame...", flush=True)
-            if fr["mode"] == "deck":
-                frames.deck_frame(fr["deck_path"], i, frame, fsize)
+            if resume and _fresh(frame) and not img_made:
+                print(f"{tag}: frame cached", flush=True)
             else:
-                frames.builtin_frame(s, i, len(slides), theme, img_path, frame, fsize)
+                print(f"{tag}: rendering frame...", flush=True)
+                if fr["mode"] == "deck":
+                    frames.deck_frame(fr["deck_path"], i, frame, fsize)
+                else:
+                    frames.builtin_frame(s, i, len(slides), theme, img_path, frame, fsize)
         built.append({"frame": frame, "narration": s.get("narration"), "title": s.get("title")})
 
         # 4) voiceover
         audio = adir / f"audio-{i+1:02d}.mp3"
+        text = (s.get("narration") or "").strip()
+        audio_made = False
         if "tts" in steps:
-            text = s.get("narration") or s.get("title") or ""
-            print(f"{tag}: voiceover ({voice['name']})...", flush=True)
-            tts.synth(text, audio, voice)
+            if resume and _fresh(audio):
+                print(f"{tag}: voiceover cached", flush=True)
+            elif text:
+                print(f"{tag}: voiceover ({voice['name']})...", flush=True)
+                tts.synth(text, audio, voice)
+                audio_made = True
+            else:
+                Path(audio).unlink(missing_ok=True)   # no narration -> silent slide
+                print(f"{tag}: no narration — silent slide", flush=True)
 
         # 5) segment
         if "video" in steps:
             seg = sdir / f"seg-{i+1:02d}.mp4"
-            dur = video.segment(frame, audio, seg, fsize, vid["fps"], vid["tail_seconds"],
-                                vid["audio_bitrate"])
+            if resume and _fresh(seg) and not (img_made or audio_made):
+                dur = ffprobe_duration(seg)
+                print(f"{tag}: segment cached {dur:.1f}s", flush=True)
+            else:
+                has_audio = _fresh(audio)
+                base = (ffprobe_duration(audio) + vid["tail_seconds"]) if has_audio \
+                    else vid.get("still_seconds", 3.0)
+                dur = max(base, vid.get("min_seconds", 0) or 0, float(s.get("duration") or 0))
+                video.segment(frame, audio if has_audio else None, seg, fsize, vid["fps"],
+                              dur, vid["audio_bitrate"])
+                print(f"{tag}: segment {dur:.1f}s", flush=True)
             segs.append(seg); total += dur
-            print(f"{tag}: segment {dur:.1f}s", flush=True)
 
     if only:                       # single-slide test run — don't emit whole decks
         return None

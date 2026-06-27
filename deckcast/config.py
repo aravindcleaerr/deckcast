@@ -35,7 +35,11 @@ DEFAULTS = {
         "model": "gpt-4o-mini",
         "temperature": 0.7,
     },
-    "video": {"fps": 30, "tail_seconds": 0.8, "audio_bitrate": "192k"},
+    "video": {
+        "fps": 30, "tail_seconds": 0.8, "audio_bitrate": "192k",
+        "min_seconds": 0.0,          # floor for a narrated slide's on-screen time
+        "still_seconds": 3.0,        # hold time for a slide with no narration
+    },
     "formats": ["mp4"],              # any of: mp4 | pptx | html
     "pptx": None,                    # optional explicit path (else derived from `output`)
     "html": None,                    # optional explicit path (else derived from `output`)

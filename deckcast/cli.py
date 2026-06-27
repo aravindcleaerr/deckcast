@@ -29,6 +29,8 @@ def main(argv=None):
     r.add_argument("--steps", help="comma list subset of: " + ",".join(pipeline.STEPS))
     r.add_argument("--formats", help="comma list of outputs: " + ",".join(pipeline.FORMATS)
                                      + " (default mp4)")
+    r.add_argument("--resume", action="store_true",
+                   help="reuse cached images/frames/audio/segments that already exist")
     r.add_argument("--only", type=int, help="process a single slide number (test)")
 
     c = sub.add_parser("create", help="autonomous: design a whole deck from one topic (LLM)")
@@ -55,7 +57,7 @@ def main(argv=None):
     cfg = config.load(args.config)
     steps = args.steps.split(",") if args.steps else None
     formats = args.formats.split(",") if args.formats else None
-    pipeline.run(cfg, steps=steps, only=args.only, formats=formats)
+    pipeline.run(cfg, steps=steps, only=args.only, formats=formats, resume=args.resume)
 
 
 def create(args):
